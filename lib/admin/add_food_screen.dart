@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 // import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
+// todo: firebase storage => cloudinary
 class AddFoodScreen extends StatefulWidget {
   const AddFoodScreen({super.key});
 
@@ -21,6 +25,7 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
   String? _imageUrl;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   // final FirebaseStorage _storage = FirebaseStorage.instance;
 
   Future<void> _pickImage() async {
@@ -39,17 +44,57 @@ class _AddFoodScreenState extends State<AddFoodScreen> {
     }
   }
 
+  // Future<String?> _uploadImage(File image) async {
+  //   try {
+  //     String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+  //     Reference storageRef = _storage.ref().child("foods/$fileName.jpg");
+  //
+  //     UploadTask uploadTask = storageRef.putFile(image);
+  //     TaskSnapshot snapshot = await uploadTask;
+  //
+  //     Lấy URL của hình ảnh sau khi tải lên thành công
+  //     String downloadUrl = await snapshot.ref.getDownloadURL();
+  //     return downloadUrl;
+  //   } catch (e) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Không thể tải lên hình ảnh: $e')),
+  //     );
+  //     return null;
+  //   }
+  // }
+
   Future<String?> _uploadImage(File image) async {
     try {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      // Reference storageRef = _storage.ref().child("foods/$fileName.jpg");
+      // Thông tin Cloudinary
+      const String cloudName = "dbzvxli5e";
+      const String apiKey = "934527959255681";
+      const String apiSecret = "RsfrEqG5tOiivRUvgBK6pll7teA";
+      const String uploadPreset = "foodie";
 
-      // UploadTask uploadTask = storageRef.putFile(image);
-      // TaskSnapshot snapshot = await uploadTask;
+      // Tạo URL API
+      final String apiUrl =
+          "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
 
-      // Lấy URL của hình ảnh sau khi tải lên thành công
-      // String downloadUrl = await snapshot.ref.getDownloadURL();
-      // return downloadUrl;
+      // Tạo form data để tải lên hình ảnh
+      final request = http.MultipartRequest('POST', Uri.parse(apiUrl))
+        ..fields['upload_preset'] = uploadPreset
+        ..fields['api_key'] = apiKey
+        ..fields['timestamp'] =
+            (DateTime.now().millisecondsSinceEpoch ~/ 1000).toString()
+        ..files.add(await http.MultipartFile.fromPath('file', image.path));
+
+      // Gửi yêu cầu tải lên
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        // Lấy URL từ kết quả trả về
+        final responseBody = await response.stream.bytesToString();
+        final responseData = json.decode(responseBody);
+        return responseData['secure_url'];
+      } else {
+        throw Exception(
+            'Failed to upload image. Status code: ${response.statusCode}');
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Không thể tải lên hình ảnh: $e')),
