@@ -37,7 +37,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
           Map<String, List<DocumentSnapshot>> categorizedFoods = {};
           for (var doc in snapshot.data!.docs) {
-            String category = doc['category'] ?? 'Khác';
+            String category = doc.data().toString().contains('category') ? doc.get('category') : 'Khác';
             categorizedFoods[category] = categorizedFoods[category] ?? [];
             categorizedFoods[category]!.add(doc);
           }
@@ -83,21 +83,21 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           leading: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
-              food['imageUrl'],
+              food.data().toString().contains('imageUrl') ? food['imageUrl'] : '',
               width: 80,
               height: 80,
               fit: BoxFit.cover,
             ),
           ),
           title: Text(
-            food['name'],
+            food.data().toString().contains('name')  ? food['name'] : '',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           subtitle: Text(
-            "${food['price']} VNĐ",
+            "${food.data().toString().contains('price') ? food['price'] : '0'} VNĐ",
             style: const TextStyle(
               fontSize: 16,
               color: Colors.grey,
